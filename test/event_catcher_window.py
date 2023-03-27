@@ -34,8 +34,17 @@ class EventCatcherWindow:
     def start(self):
         frame = ttk.Frame(self._tk)
         frame.pack(fill='both', expand=True)
-        #Set up handlers
+        # Set up handlers
+        # Left click
         frame.bind("<Button-1>", self.catch_event)
+        # Double click
+        frame.bind("<Double-Button-1>", self.catch_event)
+        # Middle click
+        frame.bind("<Button-2>", self.catch_event)
+        # Right click
+        frame.bind("<Button-3>", self.catch_event)
+        # Add more events by following this site:
+        # https://python-course.eu/tkinter/events-and-binds-in-tkinter.php
         
 
         # Some helpful text for info
@@ -48,7 +57,8 @@ class EventCatcherWindow:
 
     def catch_event(self, event):
         # Handle the event by pushing an event to the outgoing queue
-        self._outgoing_queue.put(f"Mouse event caught: button {event.num}, at screen coords {event.x_root}, {event.y_root}")
+        LOG.debug(event)
+        self._outgoing_queue.put(event)
 
 
     def process_incoming_messages(self):
