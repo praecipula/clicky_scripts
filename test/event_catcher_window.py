@@ -32,15 +32,24 @@ class EventCatcherWindow:
         return self._incoming_queue
 
     def start(self):
-        big_frame = ttk.Frame(self._tk)
-        big_frame.pack(fill='both', expand=True)
+        frame = ttk.Frame(self._tk)
+        frame.pack(fill='both', expand=True)
+        #Set up handlers
+        frame.bind("<Button-1>", self.catch_event)
+        
 
-        label = ttk.Label(big_frame, text='Lorem ipsum')
+        # Some helpful text for info
+        label = ttk.Label(frame, text='This frame will catch\nkeyboard and mouse events')
         label.pack()
 
         self._tk.geometry('200x200')
         self._tk.after(200, self.process_incoming_messages)
         self._tk.mainloop()
+
+    def catch_event(self, event):
+        # Handle the event by pushing an event to the outgoing queue
+        self._outgoing_queue.put(f"Mouse event caught: button {event.num}, at screen coords {event.x_root}, {event.y_root}")
+
 
     def process_incoming_messages(self):
         while self._incoming_queue.qsize() > 0:

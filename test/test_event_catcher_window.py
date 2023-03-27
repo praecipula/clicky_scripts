@@ -1,5 +1,6 @@
 import time
 from .event_catcher_window import EventCatcherWindow
+from clicky_scripts import CliClick, Click
 import threading
 
 
@@ -28,5 +29,17 @@ def test_event_catcher_window():
 def threaded_event_catcher_window_work(window):
     print("Sleep for 2 seconds to allow TK to do its thing.")
     time.sleep(2)
+    print("clicking with the mouse")
+    clicky = CliClick()
+    c = Click(150, 150)
+    clicky.add_command(c)
+    clicky.execute()
+    print("clicky")
+    time.sleep(2)
+    print("Dumping the queue")
+    print(window.outgoing_messages.qsize())
+    while window.outgoing_messages.qsize() > 0:
+        message = window.outgoing_messages.get()
+        print(message)
     print("Sending close window event")
     window.incoming_messages.put(EventCatcherWindow.CLOSE_WINDOW)
