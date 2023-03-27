@@ -5,8 +5,9 @@ name = "pypi"
 
 [packages]
 python-logging-base = {editable = true, git = "https://github.com/praecipula/python_logging_base"}
+pytest = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.10"
+python_version = "3.11"

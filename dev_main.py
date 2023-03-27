@@ -1,9 +1,15 @@
 #!/usr/bin/env python
-from clicky_scripts import CliClick, GetMouseCoordinates
+from clicky_scripts import CliClick, GetMouseCoordinates, Click, RightClick
 
 
-click = CliClick()
+clicky = CliClick()
 c = GetMouseCoordinates()
-click.add_command(c)
-click.execute()
+d = Click(25, 15)
+e = RightClick(60, 370)
+clicky.add_command(c)
+clicky.add_command(d)
+clicky.add_command(e)
+clicky.execute()
 print(c)
+print(d)
+print(e)

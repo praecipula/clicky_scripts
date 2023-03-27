@@ -22,11 +22,15 @@ class CliClick:
         command_string = [CliClick.COMMAND_NAME] + [c.command_string for c in self._commands]
         LOG.trace(f"Command to be executed: `{command_string}`")
         result = subprocess.run(command_string, capture_output=True)
+        if result.returncode != 0:
+            raise Exception(f"cliclick returned an error! stdout:\n{result.stdout}\nstderr:\n{result.stderr}")
         result_stdout = result.stdout.decode("utf-8")
         LOG.trace(f"Result: {result_stdout}")
-        # HACK for dev
-        if self._commands[0].expects_output:
-            self._commands[0].handle_output(result_stdout)
+        # Strip outputs and then remove empty items
+        outputs = [r for r in [r.strip() for r in result_stdout.split('\n')] if len(r) > 0]
+        for command in self._commands:
+            if command.expects_output():
+                command.handle_output(outputs.pop())
         # HACK should handle cliclick result codes.
         return True 
         
