@@ -16,5 +16,6 @@
 #print(e)
 
 from clicky_scripts import DailyStart
+from clicky_scripts import DailyAsanaProject
 
 DailyStart().execute()

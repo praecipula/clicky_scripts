@@ -1,5 +1,6 @@
 import logging
 import python_logging_base
+import pyautogui
 
 LOG = logging.getLogger("clicky")
 LOG.setLevel(logging.TRACE)
@@ -7,4 +8,6 @@ LOG.setLevel(logging.TRACE)
 pil_log = logging.getLogger("PIL.PngImagePlugin")
 pil_log.setLevel(logging.INFO)
 
+from clicky_scripts.util import *
 from clicky_scripts.daily_start import DailyStart
+from clicky_scripts.daily_asana_project import DailyAsanaProject
