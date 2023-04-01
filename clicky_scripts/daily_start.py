@@ -49,7 +49,7 @@ class DailyStart:
         new_window_menu = self.find_image("chrome_new_window.png")
         pyautogui.moveTo(new_window_menu)
         pyautogui.click()
-        time.sleep(0.75)
+        time.sleep(0.75) # to allow for "new window opening" animation
         pyautogui.write("https://news.google.com")
         pyautogui.press("enter")
         self.new_tab("https://calendar.google.com")
