@@ -9,8 +9,16 @@ pytest = "*"
 pyautogui = "*"
 pillow = "*"
 opencv-python = "*"
+keyboard = "*"
+pyqt5 = "*"
+pyqt6 = "*"
+pynput = "*"
 
 [dev-packages]
 
 [requires]
 python_version = "3.11"
+
+[scripts]
+google_photos_add_to_album="python -c 'import clicky_scripts; clicky_scripts.LOG.info(\"Running from pipenv script\"); clicky_scripts.GooglePhotosAddToAlbum().execute()'"
+keep_updating="python -c 'import clicky_scripts; clicky_scripts.LOG.info(\"Running from pipenv script\"); clicky_scripts.KeepUpdating().execute()'"
