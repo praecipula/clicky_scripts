@@ -10,8 +10,8 @@ from threading import Thread, Lock
 import cProfile, pstats
 
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QVBoxLayout, QLabel, QSlider, QGraphicsScene, QGraphicsView, QGraphicsLineItem
-from PyQt6 import QtCore, QtGui
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtGui import QCursor, QTransform, QColor, QPixmap, QGuiApplication
 import PIL
 from PIL.ImageQt import ImageQt
 
@@ -42,10 +42,12 @@ class UpdateScreenshotThread(Thread):
 
             try:
                 # pyautogui and pyscreeze do some other stuff that makes things slower and
-                # scattered screenshots in the filesystem; for instance, even when capturing
-                # a region it appears that it's capturing the whole screen and then clipping
-                # the image; but screencapture can take its own region which is faster.
-                # mouse_neighborhood = pyscreeze.screenshot(region=region)
+                # scattered screenshots in the filesystem; calling `screencapture` is
+                # effectively what they're doing under the hood anyway, so let's do that.
+
+                # For the sake of not constantly writing to disk, doing this to ramdisk
+                # is a nice feature.
+                LOG.todo("Add the capability to dynamically mount a ram disk")
                 screenshot_filename = '/Volumes/screenshot_ramdisk/tmp_screenshot.png'
                 #-x - no sounds
                 #-R (x,y,w,h) region
@@ -77,14 +79,17 @@ class MainWindow(QMainWindow):
         # Timer-based insetead of event-based events. Timer based because they just might occur
         # when this window is not directly receiving focus (so we poll for e.g. mouse position to
         # update in the bg.
-        self._update_position_timer = QtCore.QTimer()
+        self._update_position_timer = QTimer()
         self._update_position_timer.timeout.connect(self.updatePositionData)
-        self._update_position_timer.start(100)
-        self._update_pixel_timer = QtCore.QTimer()
+        self._update_position_timer.start(50)
+        self._update_pixel_timer = QTimer()
         self._update_pixel_timer.timeout.connect(self.updatePixelData)
-        self._update_pixel_timer.start(100)
+        self._update_pixel_timer.start(50)
         self._update_screenshot_thread = UpdateScreenshotThread()
         self._update_screenshot_thread.start()
+
+        # For when we want multi-screen support self._screens = QGuiApplication.screens()
+        self._screen_dimensions = QGuiApplication.primaryScreen().geometry()
 
         self._central_widget = QWidget()
         self.setCentralWidget(self._central_widget)
@@ -104,7 +109,7 @@ class MainWindow(QMainWindow):
         self._neighborhood_slider.setValue(50)
         self._main_layout.addWidget(self._neighborhood_slider)
 
-        self._cursor = QtGui.QCursor()
+        self._cursor = QCursor()
         self._mouse_color=(0, 0, 0)
 
         self._graphics_scene = QGraphicsScene(parent=self)
@@ -112,7 +117,7 @@ class MainWindow(QMainWindow):
         self._neighborhood_rectangle = self._graphics_scene.addRect(0, 0, 100, 100)
         self._n_r_reticle_vertical = QGraphicsLineItem(50, 0, 50, 100, self._neighborhood_rectangle)
         self._n_r_reticle_horizontal= QGraphicsLineItem(0, 50, 100, 50, self._neighborhood_rectangle)
-        neighborhood_rectangle_transform = QtGui.QTransform().translate(0, 100)
+        neighborhood_rectangle_transform = QTransform().translate(0, 100)
         self._neighborhood_rectangle.setTransform(neighborhood_rectangle_transform)
         self._graphics_view = QGraphicsView(self._graphics_scene)
         self._graphics_view.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -130,8 +135,14 @@ class MainWindow(QMainWindow):
         #LOG.trace(f"Current info on mouse: {mouse_location.x(), mouse_location.y()}")
         screenshot = self._update_screenshot_thread.get_screenshot()
         if screenshot != None:
-            # Retina screen to full-pixel screenshot
-            pix = screenshot.getpixel((mouse_location.x() * 2, mouse_location.y() * 2))
+            try:
+                # Retina screen to full-pixel screenshot
+                retina_pixel_coords = (min(mouse_location.x() * 2, self._screen_dimensions.width() - 1), 
+                                       min(mouse_location.y() * 2, self._screen_dimensions.height() - 1))
+                pix = screenshot.getpixel(retina_pixel_coords)
+            except IndexError as e:
+                import pdb; pdb.set_trace()
+                LOG.warning(f"Attempt to get out-of-range pixel {retina_pixel_coords} from screenshot");
             self._mouse_color = (pix[0], pix[1], pix[2])
         else:
             self._mouse_color = None
@@ -149,7 +160,7 @@ class MainWindow(QMainWindow):
 
 
             if self._mouse_color != None:
-                color = QtGui.QColor(self._mouse_color[0], self._mouse_color[1], self._mouse_color[2])
+                color = QColor(self._mouse_color[0], self._mouse_color[1], self._mouse_color[2])
                 brush = self._color_rectangle.brush()
                 brush.setColor(color)
                 brush.setStyle(Qt.BrushStyle.SolidPattern)
@@ -170,11 +181,11 @@ class MainWindow(QMainWindow):
                                            mouse_location.x()*2 + half_neighborhood_size,
                                            mouse_location.y()*2 + half_neighborhood_size))
                 qim = ImageQt(subimage)
-                pix = QtGui.QPixmap.fromImage(qim).scaledToHeight(int(rectangle_dimensions.height()))
+                pix = QPixmap.fromImage(qim).scaledToHeight(int(rectangle_dimensions.height()))
                 brush.setTexture(pix)
                 self._neighborhood_rectangle.setBrush(brush)
                 # Now to draw reticle of inverse of central pixel's color
-                inverse_color = QtGui.QColor(255 - color.red(), 255 - color.green(), 255 - color.blue())
+                inverse_color = QColor(255 - color.red(), 255 - color.green(), 255 - color.blue())
                 r_v_pen = self._n_r_reticle_vertical.pen()
                 r_v_pen.setWidth(1)
                 r_v_pen.setColor(inverse_color)
@@ -185,7 +196,13 @@ class MainWindow(QMainWindow):
                 self._n_r_reticle_horizontal.setPen(r_h_pen)
 
     def keyPressEvent(self, keyEvent):
-        LOG.trace(keyEvent.text())
+        # Just to highlight how these keys are remapped on OS X - note "control" is strange!
+        ctrl = Qt.KeyboardModifier.MetaModifier
+        opt = Qt.KeyboardModifier.AltModifier
+        cmd = Qt.KeyboardModifier.ControlModifier
+
+        # Plain key events - not using modifiers.
+        LOG.todo("Will we ever need to capture plain keystrokes for arrows or +/-? Maybe...")
         # Why flipped sign? Because '-' feels like "zoom out" which means "smaller neighborhood", and vice versa.
         if (keyEvent.key() == Qt.Key.Key_Minus):
             self._neighborhood_slider.setValue(self._neighborhood_slider.value() + 1)
@@ -203,7 +220,10 @@ class MainWindow(QMainWindow):
         elif (keyEvent.key() == Qt.Key.Key_Right):
             mouse_location = self._cursor.pos()
             pyautogui.moveTo(mouse_location.x() + 1, mouse_location.y())
-        
+
+        elif (keyEvent.modifiers() == ctrl | opt | cmd):
+            if (keyEvent.key() == Qt.Key.Key_Space):
+                LOG.info("Would capture")
 
 
 

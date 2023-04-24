@@ -11,3 +11,5 @@ pil_log.setLevel(logging.INFO)
 from clicky_scripts.util import *
 from clicky_scripts.daily_start import DailyStart
 from clicky_scripts.daily_asana_project import DailyAsanaProject
+from clicky_scripts.keep_updating import KeepUpdating
+from clicky_scripts.google_photos_add_to_album import GooglePhotosAddToAlbum
